@@ -1,11 +1,11 @@
-import { useRef, useState, type PointerEvent as RPE } from 'react';
+import { useLayoutEffect, useRef, useState, type PointerEvent as RPE } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CATS } from '../data/seed';
 import { first, ini, nf } from '../lib/format';
 import type { Person } from '../lib/types';
 import { common, edgeInfo, links, relWord, type LevelNode, type World } from '../lib/world';
 import { useWorld } from '../store';
-import { Avatar, bonecoUri, COMPANY, tint } from './Avatar';
+import { bonecoUri, COMPANY, tint } from './Avatar';
 
 interface Model { lvl: Record<string, number>; par: Record<string, string>; kids: Record<string, LevelNode[]>; chain: (x: string) => string[] }
 
@@ -44,7 +44,7 @@ const ST: Record<number, Record<string, string | number>> = {
 };
 const f1 = (v: number) => +v.toFixed(1);
 
-function Tip({w, rootId, x, M}: { w: World; rootId: string; x: string; M: Model }) {
+function Tip({w, rootId, x, M, touch}: { w: World; rootId: string; x: string; M: Model; touch: boolean }) {
   const u = w.byId[x], p = w.byId[M.par[x]], l = M.lvl[x], e = edgeInfo(w, M.par[x], x), cm = w.meId !== x ? common(w, w.meId, x).length : 0;
   return <>
     <b>{u.name}</b>
@@ -55,7 +55,7 @@ function Tip({w, rootId, x, M}: { w: World; rootId: string; x: string; M: Model 
       {u.count ? `Prestador ★ ${nf(u.rating)} (${u.count})` : ''}{u.count && u.ccount ? ' · ' : ''}{u.ccount ? `Contratante ★ ${nf(u.crating)} (${u.ccount})` : ''}{!u.count && !u.ccount ? 'Novo na Freela' : ''} · {links(w, x).length} conexões
     </span>
     {u.id === w.meId ? <span style={{color: '#C2410C'}}><b>Este é você</b></span> : cm ? <span style={{color: '#1F6FEB'}}>{cm} {cm === 1 ? 'conexão' : 'conexões'} em comum com você</span> : null}
-    <em>Clique para abrir o perfil</em>
+    <em>{touch ? 'Toque de novo para abrir o perfil' : 'Clique para abrir o perfil'}</em>
   </>;
 }
 
@@ -66,6 +66,9 @@ function NetTree({id, lv, maxL, M}: { id: string; lv: LevelNode[][]; maxL: numbe
   const [width, setWidth] = useState<number | null>(null);
   const drag = useRef({down: false, moved: false, x: 0, y: 0, sl: 0, st: 0});
   const [dragging, setDragging] = useState(false);
+  /** Último ponteiro foi um dedo: no toque não existe "passar o mouse", então o 1º toque mostra a dica e o 2º abre o perfil. */
+  const touch = useRef(false);
+  const noHover = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
   // Layout: cada folha ocupa uma linha; pais ficam centralizados nos filhos.
   const pos: Record<string, number> = {}; let cur = 18;
@@ -92,11 +95,11 @@ function NetTree({id, lv, maxL, M}: { id: string; lv: LevelNode[][]; maxL: numbe
   };
   const zoom = (n: number) => {
     const wrap = wrapRef.current; if (!wrap) return;
-    if (n === 0) { setWidth(null); wrap.scrollTo({left: 0, top: 0, behavior: 'smooth'}); return; }
+    if (n === 0) { setWidth(wrap.clientWidth < 700 ? Math.round(W * .78) : null); wrap.scrollTo({left: 0, top: 0, behavior: 'smooth'}); return; }
     const svg = wrap.querySelector('svg')!, curW = svg.getBoundingClientRect().width;
     setWidth(Math.max(wrap.clientWidth * .5, Math.min(W * 2.2, curW * (n > 0 ? 1.25 : .8))));
   };
-  const onDown = (e: RPE) => { const wr = wrapRef.current; if (!wr || e.button !== 0) return; drag.current = {down: true, moved: false, x: e.clientX, y: e.clientY, sl: wr.scrollLeft, st: wr.scrollTop}; };
+  const onDown = (e: RPE) => { touch.current = e.pointerType === 'touch'; const wr = wrapRef.current; if (!wr || touch.current || e.button !== 0) return; drag.current = {down: true, moved: false, x: e.clientX, y: e.clientY, sl: wr.scrollLeft, st: wr.scrollTop}; };
   const onMove = (e: RPE) => {
     const d = drag.current, wr = wrapRef.current; if (!d.down || !wr) return;
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
@@ -104,7 +107,18 @@ function NetTree({id, lv, maxL, M}: { id: string; lv: LevelNode[][]; maxL: numbe
     if (d.moved) { wr.scrollLeft = d.sl - dx; wr.scrollTop = d.st - dy; }
   };
   const onUp = () => { drag.current.down = false; setDragging(false); setTimeout(() => { drag.current.moved = false; }, 0); };
-  const open = (x: string) => { if (!drag.current.moved) nav('/perfil/' + x); };
+  const open = (x: string, el: Element) => {
+    if (drag.current.moved) return;
+    if (touch.current && hover?.id !== x) { show(x, el); return; }
+    nav('/perfil/' + x);
+  };
+
+  // Em telas estreitas, começa com um zoom legível e deixa a árvore rolar para o lado.
+  useLayoutEffect(() => {
+    const wr = wrapRef.current; if (!wr) return;
+    setHover(null);
+    setWidth(wr.clientWidth < 700 ? Math.round(W * .78) : null);
+  }, [W]);
 
   const ry = pos[id] - RH / 2;
   return <>
@@ -115,7 +129,8 @@ function NetTree({id, lv, maxL, M}: { id: string; lv: LevelNode[][]; maxL: numbe
     </div>
     <div className="ntree" ref={boxRef}>
       <div className={'netwrap' + (dragging ? ' drag' : '')} ref={wrapRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}>
-        <svg viewBox={`0 0 ${W} ${f1(H)}`} className={chain ? 'hl' : ''} style={width ? {width, maxWidth: 'none'} : {width: '100%', maxWidth: W}} role="group" aria-label={'Árvore da rede de confiança de ' + root.name}>
+        <svg viewBox={`0 0 ${W} ${f1(H)}`} className={chain ? 'hl' : ''} style={width ? {width, maxWidth: 'none'} : {width: '100%', maxWidth: W}} role="group" aria-label={'Árvore da rede de confiança de ' + root.name}
+          onClick={e => { if (!(e.target as Element).closest('.nd')) setHover(null); }}>
           <defs><clipPath id="nc" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5" /></clipPath></defs>
           {nodes.map(x => {
             const l = M.lvl[x], p = M.par[x], lp = l - 1, x1 = X[lp] + (lp === 0 ? RW : G[lp].w), y1 = pos[p], x2 = X[l], y2 = pos[x], dx = (x2 - x1) * .55;
@@ -138,8 +153,9 @@ function NetTree({id, lv, maxL, M}: { id: string; lv: LevelNode[][]; maxL: numbe
             return (
               <g key={'n' + x} className={`nd l${l}${me ? ' me' : ''}${cm ? ' cm' : ''} ${on(x)}`} transform={`translate(${X[l]} ${f1(pos[x] - g.h / 2)})`} tabIndex={0} role="button"
                 aria-label={`${u.name}, ${l === 1 ? 'experiência direta' : 'conexão indireta de nível ' + l + ' via ' + first(p.name)}`}
-                onMouseEnter={e => show(x, e.currentTarget)} onMouseLeave={() => setHover(null)} onFocus={e => show(x, e.currentTarget)} onBlur={() => setHover(null)}
-                onClick={() => open(x)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav('/perfil/' + x); } }}>
+                onMouseEnter={e => { if (!touch.current) show(x, e.currentTarget); }} onMouseLeave={() => { if (!touch.current) setHover(null); }}
+                onFocus={e => { if (!touch.current) show(x, e.currentTarget); }} onBlur={() => { if (!touch.current) setHover(null); }}
+                onClick={e => open(x, e.currentTarget)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav('/perfil/' + x); } }}>
                 <g className="ndi" style={{'--d': l * 140 + 60 + Math.min(i, 20) * 12 + 'ms'} as React.CSSProperties}>
                   <rect className="pill" width={g.w} height={g.h} rx={g.h / 2} /><NodeImg u={u} x={g.h / 2} y={g.h / 2} r={g.r} />
                   <text className="nm" x={g.h + 2} y={f1(g.h / 2 - 2)}>{me ? 'Você' : shortName(u)}</text>
@@ -151,35 +167,12 @@ function NetTree({id, lv, maxL, M}: { id: string; lv: LevelNode[][]; maxL: numbe
           })}
         </svg>
       </div>
-      {hover && <div className="ntip" style={{left: hover.left, top: hover.top}}><Tip w={w} rootId={id} x={hover.id} M={M} /></div>}
-      <p className="small muted">Passe o mouse sobre uma pessoa para ver como ela se liga a {first(root.name)}. Clique para abrir o perfil. Arraste para mover a árvore.</p>
+      {hover && <div className="ntip" style={{left: hover.left, top: hover.top}}><Tip w={w} rootId={id} x={hover.id} M={M} touch={touch.current} /></div>}
+      <p className="small muted">{noHover
+        ? <>Toque numa pessoa para ver como ela se liga a {first(root.name)}; toque de novo para abrir o perfil. Arraste com o dedo para mover a árvore.</>
+        : <>Passe o mouse sobre uma pessoa para ver como ela se liga a {first(root.name)}. Clique para abrir o perfil. Arraste para mover a árvore.</>}</p>
     </div>
   </>;
-}
-
-/** Versão em lista, para telas estreitas. */
-function NetList({id, maxL, M}: { id: string; maxL: number; M: Model }) {
-  const w = useWorld(), nav = useNavigate(), root = w.byId[id];
-  const Item = ({n, l}: { n: LevelNode; l: number }) => {
-    const u = w.byId[n.id], p = w.byId[M.par[n.id]], e = edgeInfo(w, M.par[n.id], n.id), ch = l < maxL ? (M.kids[n.id] || []) : [], me = n.id === w.meId;
-    const head = (
-      <span className="tl-h">
-        <Avatar u={u} size={l === 1 ? 38 : l === 2 ? 32 : 28} />
-        <span className="tl-t"><b>{me ? 'Você' : u.name}</b><span className="small muted">{e ? `${l > 1 ? 'via ' + first(p.name) + ': ' : ''}${relWord(e.s.role, first(p.name), first(u.name))}` : ''}</span></span>
-        <span className={'lv lv' + l}>{l === 1 ? 'Direta' : 'Nível ' + l}</span>
-        <button className="btn o sm" onClick={ev => { ev.preventDefault(); nav('/perfil/' + n.id); }} aria-label={'Abrir perfil de ' + u.name}>Ver</button>
-      </span>
-    );
-    return ch.length
-      ? <details className={'tl l' + l}><summary>{head}<span className="tl-n" title={ch.length + ' conexões no próximo nível'}>{ch.length}</span></summary><div className="tl-k">{ch.map(c => <Item key={c.id} n={c} l={l + 1} />)}</div></details>
-      : <div className={`tl l${l} leaf`}>{head}</div>;
-  };
-  return (
-    <div className="nlist">
-      <div className="tl-root"><Avatar u={root} size={40} style={{border: '2px solid #FF8A3D'}} /><span><b>{id === w.meId ? 'Você' : root.name}</b><br /><span className="small muted">Toque numa pessoa para ver quem ela conecta</span></span></div>
-      {(M.kids[id] || []).map(n => <Item key={n.id} n={n} l={1} />)}
-    </div>
-  );
 }
 
 export default function TrustNetwork({id, lv, maxL, setMaxL}: { id: string; lv: LevelNode[][]; maxL: number; setMaxL: (n: number) => void }) {
@@ -200,6 +193,5 @@ export default function TrustNetwork({id, lv, maxL, setMaxL}: { id: string; lv: 
       {id !== w.meId && <span className="lg"><span className="cmchip">em comum</span>conexão em comum com você</span>}
     </div>
     <NetTree id={id} lv={lv} maxL={maxL} M={M} />
-    <NetList id={id} maxL={maxL} M={M} />
   </>;
 }
