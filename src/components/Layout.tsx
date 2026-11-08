@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { toast, useStore, useToast, useWorld } from '../store';
 import { Avatar } from './Avatar';
 import { Icon, LogoMark } from './Icon';
+import ProTour from './ProTour';
 
 type NavItem = [path: string, label: string, icon: string, short?: string];
 const CLIENT_NAV: NavItem[] = [['/', 'Início', 'home'], ['/pedidos', 'Pedidos', 'list'], ['/ranking', 'Ranking', 'trophy'], ['/perfil', 'Meu perfil', 'user'], ['/parceiros', 'Parceiros', 'award']];
@@ -23,6 +24,9 @@ export default function Layout() {
   const {pathname} = useLocation(), nav = useNavigate();
   const mode = useStore(s => s.mode), setMode = useStore(s => s.setMode), reset = useStore(s => s.reset);
   const w = useWorld(), msg = useToast(s => s.text);
+  const tourSeen = useStore(s => s.tourSeen), tourOpen = useStore(s => s.tourOpen);
+  // O guia abre sozinho na primeira visita à área Trabalhar e pode ser reaberto pelo Painel.
+  const showTour = pathname.startsWith('/trabalhar') && (tourOpen || !tourSeen);
 
   useEffect(() => {
     if (pathname.startsWith('/trabalhar')) setMode('pro');
@@ -61,6 +65,7 @@ export default function Layout() {
           <button key={n[0]} aria-current={cur === n[0]} onClick={() => nav(n[0])}><Icon n={n[2]} s={22} />{n[3] || n[1]}</button>
         ))}
       </nav>
+      {showTour && <ProTour />}
       <div role="status" aria-live="polite">{msg && <div className="toast">{msg}</div>}</div>
     </div>
   );

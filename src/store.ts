@@ -20,12 +20,16 @@ interface Data {
   pf: OppFilters;
   rank: CatKey | 'all';
   leads: { name: string; contact: string }[];
+  /** Já viu (ou fechou) o guia da área Trabalhar. */
+  tourSeen: boolean;
+  /** Guia aberto agora (não é salvo). */
+  tourOpen: boolean;
 }
 
 function fresh(): Data {
   const d: Data = {
     meId: ME, mode: 'client', users: clone(SEED_PROS.concat(SEED_USERS)), orders: clone(SEED_ORDERS), jobs: clone(SEED_JOBS),
-    n: 1, sf: SF0(), pf: PF0(), rank: 'all', leads: []
+    n: 1, sf: SF0(), pf: PF0(), rank: 'all', leads: [], tourSeen: false, tourOpen: false
   };
   const w = buildWorld(d);
   SEED_INCOMING.forEach(o => {
@@ -41,6 +45,8 @@ export interface ProfileInput { role: string; bio: string; years: number; price:
 
 interface Actions {
   setMode: (m: Data['mode']) => void;
+  openTour: () => void;
+  closeTour: () => void;
   setSf: (p: Partial<SearchFilters>) => void;
   resetSf: (p?: Partial<SearchFilters>) => void;
   setPf: (p: Partial<OppFilters>) => void;
@@ -75,6 +81,8 @@ export const useStore = create<Store>()(persist(immer((set, get) => {
   return {
     ...fresh(),
     setMode: (m) => set(s => { s.mode = m; }),
+    openTour: () => set(s => { s.tourOpen = true; }),
+    closeTour: () => set(s => { s.tourOpen = false; s.tourSeen = true; }),
     setSf: (p) => set(s => { Object.assign(s.sf, p); }),
     resetSf: (p) => set(s => { s.sf = {...SF0(), ...p}; }),
     setPf: (p) => set(s => { Object.assign(s.pf, p); }),
@@ -179,7 +187,7 @@ export const useStore = create<Store>()(persist(immer((set, get) => {
 }), {
   name: 'freela-react-v1',
   storage: createJSONStorage(() => localStorage),
-  partialize: (s) => ({meId: s.meId, mode: s.mode, users: s.users, orders: s.orders, jobs: s.jobs, n: s.n, sf: s.sf, pf: s.pf, rank: s.rank, leads: s.leads})
+  partialize: (s) => ({meId: s.meId, mode: s.mode, users: s.users, orders: s.orders, jobs: s.jobs, n: s.n, sf: s.sf, pf: s.pf, rank: s.rank, leads: s.leads, tourSeen: s.tourSeen})
 }));
 
 /** Visão calculada do estado: notas, rede de confiança, etc. */

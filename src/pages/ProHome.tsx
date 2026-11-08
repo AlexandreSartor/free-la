@@ -10,7 +10,7 @@ import { cTxt, earnings, freeDays, matchJob, position, rTxt } from '../lib/world
 import { useStore, useWorld } from '../store';
 
 export default function ProHome() {
-  const w = useWorld(), nav = useNavigate(), toggleNow = useStore(s => s.toggleNow);
+  const w = useWorld(), nav = useNavigate(), toggleNow = useStore(s => s.toggleNow), openTour = useStore(s => s.openTour);
   const p = w.me;
   const novos = w.orders.filter(o => o.proId === p.id && o.status === 'sent');
   const andamento = w.orders.filter(o => o.proId === p.id && ['accepted', 'paid', 'done'].includes(o.status));
@@ -19,7 +19,10 @@ export default function ProHome() {
 
   return <>
     <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, alignItems: 'center'}}>
-      <h1 style={{fontSize: 30}}>Olá, {first(p.name)}</h1>
+      <span style={{display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10}}>
+        <h1 style={{fontSize: 30}}>Olá, {first(p.name)}</h1>
+        <button className="tog" onClick={openTour} style={{display: 'inline-flex', alignItems: 'center', gap: 6}}><Icon n="info" s={16} />Como funciona</button>
+      </span>
       <button className="card" onClick={toggleNow} aria-pressed={p.now}
         style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', ...(p.now ? {background: 'var(--navy)', color: '#fff', borderColor: 'var(--navy)'} : {})}}>
         <span style={{display: 'flex', flexDirection: 'column', textAlign: 'left'}}>
