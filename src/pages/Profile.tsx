@@ -191,7 +191,7 @@ export default function Profile() {
       <section className="card" style={col()}>
         <h2 style={{fontSize: 18}}>Disponibilidade</h2>
         <div style={{display: 'flex', flexWrap: 'wrap', gap: 6}}>
-          {p.now && <span className="chip o">Disponível agora</span>}
+          {p.now && <span className="chip avail"><i />Disponível agora</span>}
           {free.length ? free.map(d => <span key={d} className="chip">Livre {fmtDay(d)}</span>) : <span className="small muted">Sem dias livres este mês.</span>}
         </div>
       </section>
@@ -249,13 +249,14 @@ export default function Profile() {
           <span className="chip d">{p.provider ? 'Contrata e presta serviços' : 'Contrata serviços'}</span>
           {isNew ? <span className="chip" style={{background: 'var(--or)', color: 'var(--navy)'}}>Novo na Freela</span>
             : p.provider && !p.count ? <span className="chip" style={{background: 'var(--or)', color: 'var(--navy)'}}>Prestador novo</span> : null}
-          {p.provider && p.now && <span className="chip" style={{background: 'var(--or)', color: 'var(--navy)'}}>Disponível agora</span>}
+          {p.provider && p.now && <span className="chip avail"><i />Disponível agora</span>}
         </div>
       </div>
       {canHire && (
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6}}>
-          <span className="small" style={{color: 'var(--pale)'}}>A partir de <b style={{color: '#fff', fontSize: 18}}>{brl(p.price)}</b></span>
-          <button className="btn" onClick={() => setHiring(true)}><Icon n="briefcase" s={18} />Contratar serviço</button>
+        <div className="hire-box">
+          <span className="hire-price"><small>A partir de</small><b>{brl(p.price)}</b></span>
+          <button className="btn hire-btn" onClick={() => setHiring(true)}><Icon n="briefcase" s={20} />Contratar serviço</button>
+          <span className="hire-note"><Icon n="shield" s={14} c="#FF8A3D" />Você só paga depois que {fn} aceitar</span>
         </div>
       )}
     </section>
