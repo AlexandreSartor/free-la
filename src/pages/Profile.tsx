@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Avatar, PortImg } from '../components/Avatar';
 import { BackBtn, Bars, PersonBtn, OrderRow } from '../components/common';
 import { Icon, Star } from '../components/Icon';
@@ -67,14 +67,14 @@ function IndSection({w, id, list, l}: { w: World; id: string; list: LevelNode[];
   );
 }
 
-function BookCard({p}: { p: Person }) {
+function BookCard({p, bare}: { p: Person; bare?: boolean }) {
   const w = useWorld(), nav = useNavigate(), sendOrder = useStore(s => s.sendOrder);
   const [day, setDay] = useState<number | null>(null), [time, setTime] = useState<string | null>(null);
   const days = Array.from({length: 14}, (_, i) => TODAY + i);
   const send = () => { if (!day || !time) return; const id = sendOrder(p.id, day, time); toast('Pedido enviado para ' + first(p.name) + '.'); nav('/pedidos/' + id); };
   return (
-    <div className="card" style={{border: '2px solid var(--navy)', ...col(14)}}>
-      <h2 style={{fontSize: 18}}>Contratar {first(p.name)}</h2>
+    <div className={bare ? undefined : 'card'} style={bare ? col(14) : {border: '2px solid var(--navy)', ...col(14)}}>
+      <h2 style={{fontSize: bare ? 22 : 18, paddingRight: bare ? 40 : 0}}>Contratar {first(p.name)}</h2>
       <div><span className="lbl">1. Escolha um dia livre</span>
         <div className="days">{days.map(d => {
           const st = dayState(w, p, d);
@@ -103,11 +103,16 @@ export default function Profile() {
   const [rel, setRel] = useState<'all' | 'contratou' | 'prestou'>('all');
   const [lvl, setLvl] = useState(2);
   const [av, setAv] = useState<'all' | 'pro' | 'cli'>('all');
-  useEffect(() => { setTab('rede'); setRel('all'); setLvl(2); setAv('all'); }, [id]);
+  const {hash} = useLocation(), mode = useStore(s => s.mode);
+  const [hiring, setHiring] = useState(false);
+  // "#contratar" no link abre direto a janela de contratação.
+  useEffect(() => { setTab('rede'); setRel('all'); setLvl(2); setAv('all'); setHiring(hash === '#contratar'); }, [id, hash]);
 
   const p = w.byId[id];
   if (!p) return <><BackBtn /><div className="empty">Perfil não encontrado.</div></>;
   const self = id === w.meId, fn = first(p.name);
+  // Contratar só faz sentido na área Contratar, no perfil de quem presta serviço.
+  const canHire = p.provider && !self && mode === 'client';
   const L1 = links(w, id), lv = levels(w, id), cm = self ? [] : common(w, w.meId, id), cmSet = new Set(cm);
   const myE = self ? null : links(w, w.meId).find(e => e.id === id);
   const path = self || myE ? null : pathTo(w, w.meId, id);
@@ -247,6 +252,12 @@ export default function Profile() {
           {p.provider && p.now && <span className="chip" style={{background: 'var(--or)', color: 'var(--navy)'}}>Disponível agora</span>}
         </div>
       </div>
+      {canHire && (
+        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6}}>
+          <span className="small" style={{color: 'var(--pale)'}}>A partir de <b style={{color: '#fff', fontSize: 18}}>{brl(p.price)}</b></span>
+          <button className="btn" onClick={() => setHiring(true)}><Icon n="briefcase" s={18} />Contratar serviço</button>
+        </div>
+      )}
     </section>
     <div className="grid" style={{'--min': '150px'} as CSSProperties}>
       {st(p.provider ? (p.count ? '★ ' + nf(p.rating) : 'Novo') : '—', p.provider ? `como prestador · ${plural(p.count, 'avaliação', 'avaliações')}` : 'não presta serviços')}
@@ -268,7 +279,6 @@ export default function Profile() {
             <Bars m={m} dark />
           </div>
         )}
-        {p.provider && !self && <BookCard p={p} />}
         {self && (
           <div className="card" style={col()}>
             <b>Este é o seu perfil</b>
@@ -283,5 +293,24 @@ export default function Profile() {
         </div>
       </aside>
     </div>
+    {canHire && hiring && <HireModal p={p} onClose={() => setHiring(false)} />}
   </>;
+}
+
+/** Janela de contratação aberta pelo botão "Contratar serviço" do banner. */
+function HireModal({p, onClose}: { p: Person; onClose: () => void }) {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', k);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = ''; };
+  }, [onClose]);
+  return (
+    <div className="mbg" onClick={onClose}>
+      <div className="modal hire-modal" role="dialog" aria-modal="true" aria-label={'Contratar ' + p.name} onClick={e => e.stopPropagation()}>
+        <button className="pt-x" onClick={onClose} aria-label="Fechar">✕</button>
+        <BookCard p={p} bare />
+      </div>
+    </div>
+  );
 }

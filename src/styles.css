@@ -303,3 +303,5 @@ svg.hl .ed.on{stroke-width:3.4}
 .tour-dots{display:flex;gap:6px}
 .tour-dots button{width:9px;height:9px;padding:0;border:0;border-radius:999px;background:var(--line2);transition:width .2s,background .2s}
 .tour-dots button[aria-selected=true]{width:22px;background:var(--navy)}
+/* Janela de contratação no perfil */
+.modal.hire-modal{max-width:640px;padding:24px}
