@@ -80,7 +80,7 @@ export function OrderRow({o}: { o: Order }) {
       <Avatar u={other} size={46} />
       <span style={{flex: '1 1 220px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3}}>
         <b>{o.title}</b>
-        <span className="small muted">{asP ? 'Você prestou serviço para ' : 'Você contratou '}{other.name} · {o.date ? 'concluído em ' + o.date : <DayTime o={o} />}{o.price ? ' · ' + brlc(asP ? o.price : clientTotal(o.price, o.insured)) : ''}</span>
+        <span className="small muted">{asP ? 'Você prestou serviço para ' : 'Você contratou '}{other.name} · {o.date ? 'concluído em ' + o.date : <DayTime o={o} />}{o.price ? ' · ' + brlc(asP ? o.price : clientTotal(o.price)) : ''}</span>
         {o.status === 'rated' && gave && got && (
           <span className="small" style={{display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', color: 'var(--ink2)'}}>
             Você deu <Star s={12} /><b>{gave.stars}</b> · recebeu <Star s={12} /><b>{got.stars}</b> ·{' '}

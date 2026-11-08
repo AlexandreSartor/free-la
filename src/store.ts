@@ -53,7 +53,7 @@ interface Actions {
   resetPf: () => void;
   setRank: (c: CatKey | 'all') => void;
   /** Contratar direto pelo perfil. Retorna o id do pedido. */
-  sendOrder: (proId: string, day: number, time: string, insured?: boolean) => string;
+  sendOrder: (proId: string, day: number, time: string) => string;
   simAccept: (id: string) => void;
   acceptQuote: (id: string, price: number, text: string) => void;
   pay: (id: string) => void;
@@ -88,10 +88,10 @@ export const useStore = create<Store>()(persist(immer((set, get) => {
     setPf: (p) => set(s => { Object.assign(s.pf, p); }),
     resetPf: () => set(s => { s.pf = PF0(); }),
     setRank: (c) => set(s => { s.rank = c; }),
-    sendOrder: (proId, day, time, insured = false) => {
+    sendOrder: (proId, day, time) => {
       const wd = w(), p = wd.byId[proId], id = nextId('o');
       const o: Order = {id, proId, clientId: wd.meId, cat: p.cat, title: p.cat === 'ger' ? p.role : 'Serviço de ' + CATS[p.cat].label.toLowerCase(), desc: '', date: null,
-        day, time, insured, price: null, status: 'sent', msgs: [{from: 'client', text: insured ? 'Olá! Gostaria de um orçamento. Contratei com compra segurada.' : 'Olá! Gostaria de um orçamento.'}], ratePro: null, rateClient: null,
+        day, time, price: null, status: 'sent', msgs: [{from: 'client', text: 'Olá! Gostaria de um orçamento.'}], ratePro: null, rateClient: null,
         match: match(wd, p, {cat: p.cat, day})};
       set(s => { s.orders.push(o); });
       return id;
@@ -101,7 +101,7 @@ export const useStore = create<Store>()(persist(immer((set, get) => {
       set(s => {
         const o = s.orders.find(x => x.id === id)!;
         o.price = p.price; o.status = 'accepted';
-        o.msgs.push({from: 'pro', text: `Oi, ${first(wd.byId[o.clientId].name)}! Posso atender ${fmtDay(o.day!)} às ${o.time}. ${priceMsg(p.price, o.insured)}`});
+        o.msgs.push({from: 'pro', text: `Oi, ${first(wd.byId[o.clientId].name)}! Posso atender ${fmtDay(o.day!)} às ${o.time}. ${priceMsg(p.price)}`});
       });
     },
     acceptQuote: (id, price, text) => set(s => {
@@ -110,7 +110,7 @@ export const useStore = create<Store>()(persist(immer((set, get) => {
     }),
     pay: (id) => set(s => {
       const o = s.orders.find(x => x.id === id)!;
-      o.status = 'paid'; o.msgs.push({from: 'sys', text: `Pagamento de ${brlc(clientTotal(o.price || 0, o.insured))} guardado com proteção${o.insured ? ' (compra segurada)' : ''}.`});
+      o.status = 'paid'; o.msgs.push({from: 'sys', text: `Pagamento de ${brlc(clientTotal(o.price || 0))} guardado com proteção.`});
     }),
     finish: (id) => set(s => {
       const o = s.orders.find(x => x.id === id)!, p = s.users.find(u => u.id === o.proId)!;

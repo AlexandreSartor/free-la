@@ -5,8 +5,6 @@ export const TODAY = 7;
 /* Taxa de proteção: paga só por quem contrata. Quem presta o serviço recebe 100% do valor. */
 export const FEE_PCT = 0.05;
 export const FEE_FIXED = 5;
-/** Compra segurada (opcional, só para quem contrata): percentual extra sobre o valor do serviço. */
-export const INSURANCE_PCT = 0.05;
 
 const USER_DEFAULTS: Omit<User, 'id' | 'name' | 'hood'> = {
   provider: false, verified: true, since: '2025', dist: 2, bio: '', cat: 'ger', role: '', years: 0, price: 0, resp: 0,

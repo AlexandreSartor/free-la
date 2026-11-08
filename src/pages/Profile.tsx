@@ -5,8 +5,8 @@ import { BackBtn, Bars, PersonBtn, OrderRow } from '../components/common';
 import { Icon, Star } from '../components/Icon';
 import TrustNetwork from '../components/TrustNetwork';
 import { FeeBreakdown } from '../components/OfferForm';
-import { CATS, INSURANCE_PCT, TODAY } from '../data/seed';
-import { brl, brlc, clientTotal, first, fmtDay, insuranceFee, nf, plural, WDS, wd } from '../lib/format';
+import { CATS, TODAY } from '../data/seed';
+import { brl, first, fmtDay, nf, plural, WDS, wd } from '../lib/format';
 import type { Person } from '../lib/types';
 import {
   common, dayState, doneOrders, freeDays, levels, links, match, pathTo, position, relWord, reviewsOf,
@@ -70,11 +70,8 @@ function IndSection({w, id, list, l}: { w: World; id: string; list: LevelNode[];
 function BookCard({p, bare}: { p: Person; bare?: boolean }) {
   const w = useWorld(), nav = useNavigate(), sendOrder = useStore(s => s.sendOrder);
   const [day, setDay] = useState<number | null>(null), [time, setTime] = useState<string | null>(null);
-  const [insured, setInsured] = useState(false), [askIns, setAskIns] = useState(false);
   const days = Array.from({length: 14}, (_, i) => TODAY + i);
-  const send = () => { if (!day || !time) return; const id = sendOrder(p.id, day, time, insured); toast('Pedido enviado para ' + first(p.name) + (insured ? ', com compra segurada.' : '.')); nav('/pedidos/' + id); };
-  // Ligar o seguro passa pela explicação; desligar é direto.
-  const toggleIns = () => insured ? setInsured(false) : setAskIns(true);
+  const send = () => { if (!day || !time) return; const id = sendOrder(p.id, day, time); toast('Pedido enviado para ' + first(p.name) + '.'); nav('/pedidos/' + id); };
   return (
     <div className={bare ? undefined : 'card'} style={bare ? col(14) : {border: '2px solid var(--navy)', ...col(14)}}>
       <h2 style={{fontSize: bare ? 22 : 18, paddingRight: bare ? 40 : 0}}>Contratar {first(p.name)}</h2>
@@ -88,59 +85,13 @@ function BookCard({p, bare}: { p: Person; bare?: boolean }) {
       <div><span className="lbl">2. Escolha o horário</span>
         <div style={{display: 'flex', flexWrap: 'wrap', gap: 6}}>{['9h', '11h', '14h', '16h'].map(t => <button key={t} className="tog" aria-pressed={time === t} onClick={() => setTime(t)}>{t}</button>)}</div>
       </div>
-      <div className={'ins-row' + (insured ? ' on' : '')}>
-        <span className="ins-ic"><Icon n="shield" s={20} c={insured ? '#166534' : '#FF8A3D'} /></span>
-        <span style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2}}>
-          <b>Compra segurada</b>
-          <span className="small muted">{insured ? 'Ativada: contrato coberto em caso de roubo ou furto · valor sujeito à análise' : `Cobertura contra roubo ou furto por +${INSURANCE_PCT * 100}% do valor do serviço`}</span>
-        </span>
-        <button className="switch" role="switch" aria-checked={insured} aria-label="Compra segurada" onClick={toggleIns}><i /></button>
-      </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 10, borderTop: '1px solid var(--soft)'}}>
         <span className="lbl" style={{margin: 0}}>Resumo estimado</span>
-        <FeeBreakdown price={p.price} insured={insured} />
+        <FeeBreakdown price={p.price} />
         <span className="small muted" style={{lineHeight: 1.45}}>Estimativa pelo preço inicial de {brl(p.price)}. O valor final vem no orçamento de {first(p.name)}, que recebe o valor do serviço sem desconto.</span>
       </div>
       <button className="btn w" disabled={!day || !time} onClick={send}>{day && time ? `3. Enviar pedido para ${fmtDay(day)}, ${time}` : '3. Enviar pedido'}</button>
       <p className="small muted" style={{display: 'flex', gap: 6}}><Icon n="shield" s={16} />Você só paga depois que {first(p.name)} aceitar, e o valor fica protegido.</p>
-      {askIns && <InsurancePopup price={p.price} onConfirm={() => { setInsured(true); setAskIns(false); }} onCancel={() => setAskIns(false)} />}
-    </div>
-  );
-}
-
-/** Explica a compra segurada antes de ativar: taxa maior em troca de cobertura do contrato. */
-function InsurancePopup({price, onConfirm, onCancel}: { price: number; onConfirm: () => void; onCancel: () => void }) {
-  useEffect(() => {
-    // Captura o Esc antes da janela de contratação, para fechar só esta explicação.
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); onCancel(); } };
-    window.addEventListener('keydown', k, true);
-    return () => window.removeEventListener('keydown', k, true);
-  }, [onCancel]);
-  return (
-    <div className="mbg top" onClick={onCancel}>
-      <div className="modal ins-modal" role="dialog" aria-modal="true" aria-labelledby="insT" onClick={e => e.stopPropagation()}>
-        <button className="pt-x" onClick={onCancel} aria-label="Fechar">✕</button>
-        <span className="ins-big"><Icon n="shield" s={30} c="#166534" w={2.2} /></span>
-        <h2 id="insT" style={{fontSize: 22}}>Compra segurada</h2>
-        <p style={{color: 'var(--ink2)', lineHeight: 1.55}}>
-          Com a compra segurada, o seu contrato fica coberto em caso de <b>roubo ou furto</b> durante o serviço. Por isso a <b>taxa é maior</b>:
-          além da taxa de proteção, você paga mais <b>{INSURANCE_PCT * 100}% do valor do serviço</b>.
-        </p>
-        <div className="fee-box">
-          <div style={{display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 14}}><span style={{color: 'var(--ink2)'}}>Seguro neste serviço</span><b>+ {brlc(insuranceFee(price))}</b></div>
-          <div style={{display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 14}}><span style={{color: 'var(--ink2)'}}>Total estimado com seguro</span><b>{brlc(clientTotal(price, true))}</b></div>
-        </div>
-        <b className="small" style={{textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--muted)'}}>O que fica coberto</b>
-        <ul className="tour-pts">
-          <li><Icon n="check" s={16} c="#22C55E" w={3} />Roubo ou furto de objetos do seu imóvel durante o serviço</li>
-        </ul>
-        <p className="ins-disclaimer"><Icon n="info" s={16} c="#9A6700" /><span><b>Valor sujeito à análise.</b> O valor do seguro e o reembolso dependem da análise de cada caso e das condições da apólice.</span></p>
-        <p className="small muted" style={{lineHeight: 1.5}}>A cobertura vale só para roubos e furtos em serviços contratados e pagos pela Freela. Danos, atrasos ou serviço não realizado não entram no seguro. O profissional continua recebendo o valor integral.</p>
-        <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end'}}>
-          <button className="btn o" onClick={onCancel}>Agora não</button>
-          <button className="btn n" onClick={onConfirm}><Icon n="shield" s={18} c="#FF8A3D" />Ativar compra segurada</button>
-        </div>
-      </div>
     </div>
   );
 }

@@ -61,8 +61,6 @@ export interface Order {
   day: number | null;
   time: string;
   urgent?: boolean;
-  /** Compra segurada: cobre roubo ou furto durante o serviço, com taxa extra para quem contrata. */
-  insured?: boolean;
   price: number | null;
   status: OrderStatus;
   seed?: boolean;
