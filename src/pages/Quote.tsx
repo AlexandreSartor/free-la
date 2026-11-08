@@ -15,8 +15,8 @@ export default function Quote() {
   return <>
     <BackBtn label="Voltar ao pedido" to={'/pedidos/' + o.id} />
     <OfferForm
-      cat={o.cat} initialPrice={p.price} m={o.match} submitLabel="Aceitar e enviar orçamento"
-      message={price => `Oi, ${first(cl.name)}! Vi seu pedido e posso atender ${fmtDay(o.day!)} às ${o.time}. ${priceMsg(price)} Qualquer dúvida, é só chamar por aqui!`}
+      cat={o.cat} initialPrice={p.price} m={o.match} submitLabel="Aceitar e enviar orçamento" insured={o.insured}
+      message={price => `Oi, ${first(cl.name)}! Vi seu pedido e posso atender ${fmtDay(o.day!)} às ${o.time}. ${priceMsg(price, o.insured)} Qualquer dúvida, é só chamar por aqui!`}
       header={
         <div className="card" style={{display: 'flex', flexDirection: 'column', gap: 6}}>
           <span className="small muted">Pedido de {cl.name} · {cTxt(cl)}</span>

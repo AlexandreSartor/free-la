@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from 'react';
-import { CATS, FEE_FIXED, FEE_PCT } from '../data/seed';
-import { brl, brlc, clientFee, clientTotal } from '../lib/format';
+import { CATS, FEE_FIXED, FEE_PCT, INSURANCE_PCT } from '../data/seed';
+import { brl, brlc, clientFee, clientTotal, insuranceFee } from '../lib/format';
 import type { CatKey, Match } from '../lib/types';
 import { Bars } from './common';
 import { Icon } from './Icon';
 
 /** Card "Preço do serviço": o profissional define o valor e vê quanto recebe (sem taxa) e quanto o cliente paga. */
-export function PriceCard({value, onChange}: { value: string; onChange: (v: string) => void }) {
+export function PriceCard({value, onChange, insured}: { value: string; onChange: (v: string) => void; insured?: boolean }) {
   const n = Math.max(0, +value.replace(',', '.') || 0);
   return (
     <section className="card price-card">
@@ -32,16 +32,16 @@ export function PriceCard({value, onChange}: { value: string; onChange: (v: stri
       <div className="feeinfo">
         <Icon n="info" s={18} c="#1F6FEB" />
         <span>Uma taxa de proteção de <b>+{FEE_PCT * 100}% + {brlc(FEE_FIXED)}</b> será adicionada ao valor pago pelo contratante no checkout.
-          {n > 0 && <> O contratante paga <b>{brlc(clientTotal(n))}</b> ({brlc(n)} + {brlc(clientFee(n))} de taxa).</>}</span>
+          {n > 0 && <> O contratante paga <b>{brlc(clientTotal(n, insured))}</b> ({brlc(n)} + {brlc(clientFee(n))} de taxa{insured ? <> + {brlc(insuranceFee(n))} da compra segurada, escolhida por ele</> : ''}).</>}</span>
       </div>
     </section>
   );
 }
 
 /** Formulário de orçamento/proposta: preço + mensagem, com referências da categoria ao lado. */
-export default function OfferForm({header, cat, initialPrice, message, budget, m, submitLabel, onSubmit}: {
+export default function OfferForm({header, cat, initialPrice, message, budget, m, submitLabel, onSubmit, insured}: {
   header: ReactNode; cat: CatKey; initialPrice: number; message: (price: number) => string;
-  budget?: [number, number] | null; m: Match | null; submitLabel: string; onSubmit: (price: number, msg: string) => void;
+  budget?: [number, number] | null; m: Match | null; submitLabel: string; onSubmit: (price: number, msg: string) => void; insured?: boolean;
 }) {
   const [price, setPrice] = useState(String(initialPrice));
   const [msg, setMsg] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function OfferForm({header, cat, initialPrice, message, budget, m
     <div className="row">
       <section className="main-col">
         {header}
-        <PriceCard value={price} onChange={setPrice} />
+        <PriceCard value={price} onChange={setPrice} insured={insured} />
         <div className="card" style={{display: 'flex', flexDirection: 'column', gap: 14}}>
           <div><label className="lbl" htmlFor="qmsg">Mensagem para o cliente</label>
             <textarea id="qmsg" rows={4} value={msg ?? message(n)} onChange={e => setMsg(e.target.value)} />
@@ -75,7 +75,7 @@ export default function OfferForm({header, cat, initialPrice, message, budget, m
 }
 
 /** Resumo do checkout para quem contrata: serviço + taxa de proteção = total. */
-export function FeeBreakdown({price, dark}: { price: number; dark?: boolean }) {
+export function FeeBreakdown({price, dark, insured}: { price: number; dark?: boolean; insured?: boolean }) {
   const line = (a: ReactNode, b: string, strong?: boolean) => (
     <div style={{display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: strong ? 16 : 14, fontWeight: strong ? 700 : 400}}>
       <span style={{color: strong ? undefined : dark ? '#E1E7F0' : 'var(--ink2)'}}>{a}</span><span style={{whiteSpace: 'nowrap'}}>{b}</span>
@@ -85,8 +85,10 @@ export function FeeBreakdown({price, dark}: { price: number; dark?: boolean }) {
     <div className={'fee-box' + (dark ? ' dark-box' : '')}>
       {line('Valor do serviço', brlc(price))}
       {line(<>Taxa de proteção ({FEE_PCT * 100}% + {brlc(FEE_FIXED)})</>, brlc(clientFee(price)))}
+      {insured && line(<>Compra segurada ({INSURANCE_PCT * 100}%)*</>, brlc(insuranceFee(price)))}
       <div className="fee-sep" />
-      {line('Total', brlc(clientTotal(price)), true)}
+      {line('Total', brlc(clientTotal(price, insured)), true)}
+      {insured && <span className="small" style={{color: dark ? 'var(--pale)' : 'var(--muted)'}}>* Valor do seguro sujeito à análise. Cobre apenas roubo ou furto.</span>}
     </div>
   );
 }

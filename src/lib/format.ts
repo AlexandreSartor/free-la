@@ -1,4 +1,4 @@
-import { FEE_FIXED, FEE_PCT, TODAY } from '../data/seed';
+import { FEE_FIXED, FEE_PCT, INSURANCE_PCT, TODAY } from '../data/seed';
 
 export const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 export const nf = (n: number) => n.toFixed(1).replace('.', ',');
@@ -6,9 +6,10 @@ export const brl = (n: number) => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
 /** Valor com centavos, para valores de checkout. */
 export const brlc = (n: number) => 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 export const clientFee = (price: number) => Math.round((price * FEE_PCT + FEE_FIXED) * 100) / 100;
-export const clientTotal = (price: number) => price + clientFee(price);
+export const insuranceFee = (price: number) => Math.round(price * INSURANCE_PCT * 100) / 100;
+export const clientTotal = (price: number, insured = false) => price + clientFee(price) + (insured ? insuranceFee(price) : 0);
 /** Frase do valor final para o cliente, já com a taxa de proteção. */
-export const priceMsg = (price: number) => `O valor final fica ${brlc(clientTotal(price))} (${brlc(price)} do serviço + ${brlc(clientFee(price))} da taxa de proteção).`;
+export const priceMsg = (price: number, insured = false) => `O valor final fica ${brlc(clientTotal(price, insured))} (${brlc(price)} do serviço + ${brlc(clientFee(price))} da taxa de proteção${insured ? ` + ${brlc(insuranceFee(price))} da compra segurada` : ''}).`;
 export const WD = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 export const WDS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 export const wd = (d: number) => (d - 1) % 7; // 1/nov/2026 = domingo

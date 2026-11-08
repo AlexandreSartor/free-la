@@ -317,3 +317,17 @@ svg.hl .ed.on{stroke-width:3.4}
 /* Status "Disponível agora" */
 .chip.avail{background:#DCFCE7;color:#166534}
 .chip.avail i{width:8px;height:8px;border-radius:50%;background:#22C55E;box-shadow:0 0 0 3px rgba(34,197,94,.25)}
+/* Compra segurada */
+.ins-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--line2);border-radius:16px;background:#fff;transition:border-color .2s,background .2s}
+.ins-row.on{border-color:#86EFAC;background:#F0FDF4}
+.ins-ic{width:40px;height:40px;flex-shrink:0;border-radius:12px;background:var(--orT);display:inline-flex;align-items:center;justify-content:center}
+.ins-row.on .ins-ic{background:#DCFCE7}
+.switch{position:relative;flex-shrink:0;width:52px;height:30px;padding:0;border:0;border-radius:999px;background:var(--line2);transition:background .2s}
+.switch i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(11,31,58,.25);transition:transform .2s}
+.switch[aria-checked=true]{background:#22C55E}
+.switch[aria-checked=true] i{transform:translateX(22px)}
+.mbg.top{z-index:70}
+.modal.ins-modal{max-width:520px;gap:12px;padding:24px}
+.ins-big{width:60px;height:60px;border-radius:18px;background:#DCFCE7;display:inline-flex;align-items:center;justify-content:center}
+.ins-disclaimer{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.5;color:#7A5200;background:#FFF6DB;border:1px solid #F5DFA0;border-radius:12px;padding:10px 12px;margin:0}
+.ins-disclaimer svg{flex-shrink:0;margin-top:2px}

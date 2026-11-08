@@ -73,8 +73,8 @@ export default function OrderPage() {
     ? <div className="dark" style={col}>
         <b style={{fontSize: 18, display: 'flex', gap: 8, alignItems: 'center'}}><Icon n="shield" s={22} c="#FF8A3D" />Pagamento protegido</b>
         <p className="small" style={{color: '#E1E7F0', lineHeight: 1.5}}>O valor fica guardado na Freela e só vai para {fnP} quando você confirmar que o serviço ficou pronto. {fnP} recebe o valor do serviço integral.</p>
-        <FeeBreakdown price={o.price!} dark />
-        <div><button className="btn" onClick={() => { a.pay(o.id); toast('Pagamento guardado com proteção.'); }}>Pagar {brlc(clientTotal(o.price!))} com proteção</button></div>
+        <FeeBreakdown price={o.price!} dark insured={o.insured} />
+        <div><button className="btn" onClick={() => { a.pay(o.id); toast('Pagamento guardado com proteção.'); }}>Pagar {brlc(clientTotal(o.price!, o.insured))} com proteção</button></div>
       </div>
     : <div className="card" style={col}>
         <b>Orçamento aceito: você recebe {brlc(o.price!)}.</b>
@@ -84,7 +84,7 @@ export default function OrderPage() {
   else if (o.status === 'paid') action = c
     ? <div className="card" style={col}>
         <b>Serviço agendado: <DayTime o={o} />.</b>
-        <p className="small muted">{brlc(clientTotal(o.price!))} guardados com proteção ({brl(o.price!)} do serviço + taxa). Quando o serviço terminar, confirme aqui.</p>
+        <p className="small muted">{brlc(clientTotal(o.price!, o.insured))} guardados com proteção ({brl(o.price!)} do serviço + taxa{o.insured ? ' + compra segurada' : ''}). Quando o serviço terminar, confirme aqui.</p>
         <div><button className="btn" onClick={() => { a.finish(o.id); toast('Pagamento liberado para o profissional.'); }}>Confirmar que o serviço foi concluído</button></div>
       </div>
     : <div className="card" style={col}>
@@ -135,11 +135,11 @@ export default function OrderPage() {
     <section className="card" style={{display: 'flex', flexDirection: 'column', gap: 14}}>
       <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start'}}>
         <span style={{display: 'flex', flexDirection: 'column', gap: 4}}>
-          <h1 style={{fontSize: 24}}>{o.title}</h1>
+          <h1 style={{fontSize: 24, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center'}}>{o.title}{o.insured && <span className="chip avail"><Icon n="shield" s={13} c="#166534" />Compra segurada</span>}</h1>
           <span className="small muted">{c ? 'Você contratou' : 'Você atende'} <Link className="lnk" to={'/perfil/' + other.id}>{other.name}</Link> · {o.date ? 'concluído em ' + o.date : <>{o.day ? fmtDay(o.day) : ''}, às {o.time}</>}</span>
           {o.desc && <span className="small" style={{color: 'var(--ink2)'}}>“{o.desc}”</span>}
         </span>
-        <b style={{fontSize: 22, textAlign: 'right'}}>{o.price ? <>{brlc(c ? clientTotal(o.price) : o.price)}<br /><span className="small muted" style={{fontWeight: 500}}>{c ? 'total com taxa de proteção' : 'você recebe, sem taxa'}</span></> : <span className="small muted">{o.seed ? 'valor visível só para os dois' : 'aguardando orçamento'}</span>}</b>
+        <b style={{fontSize: 22, textAlign: 'right'}}>{o.price ? <>{brlc(c ? clientTotal(o.price, o.insured) : o.price)}<br /><span className="small muted" style={{fontWeight: 500}}>{c ? (o.insured ? 'total com taxa e seguro' : 'total com taxa de proteção') : 'você recebe, sem taxa'}</span></> : <span className="small muted">{o.seed ? 'valor visível só para os dois' : 'aguardando orçamento'}</span>}</b>
       </div>
       <div className="steps5">{steps.map((s, i) => <div key={s} className={i < idx ? 'ok' : ''}><i />{s}</div>)}</div>
     </section>
