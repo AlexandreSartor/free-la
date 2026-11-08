@@ -35,8 +35,8 @@ export default function Orders() {
                 <span className="small" style={{color: 'var(--ink2)'}}>“{pp.msg}”</span>
               </span>
               <span style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6}}>
-                <b style={{fontSize: 18}}>{brl(pp.price)}</b>
-                <span className="small muted">{brlc(clientTotal(pp.price))} com taxa</span>
+                <b style={{fontSize: 18}}>{brlc(clientTotal(pp.price))}</b>
+                <span className="small muted">{brlc(pp.price)} + taxa de proteção</span>
                 <span className="pct">{m.pct}% compatível</span>
                 <span style={{display: 'flex', gap: 6}}>
                   <button className="btn o" style={{minHeight: 40, fontSize: 13}} onClick={() => nav('/perfil/' + p.id)}>Ver perfil</button>

@@ -1,7 +1,7 @@
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { BackBtn } from '../components/common';
 import OfferForm from '../components/OfferForm';
-import { brl, first, fmtDay, nf } from '../lib/format';
+import { first, fmtDay, nf, priceMsg } from '../lib/format';
 import { cTxt, jobDist, matchJob } from '../lib/world';
 import { toast, useStore, useWorld } from '../store';
 
@@ -17,7 +17,7 @@ export default function Propose() {
     <BackBtn label="Oportunidades" to="/trabalhar/oportunidades" />
     <OfferForm
       cat={j.cat} initialPrice={def} m={m} budget={j.budget} submitLabel="Enviar proposta"
-      message={price => `Oi, ${first(cl.name)}! Vi seu pedido e posso atender ${when}${j.time && j.time !== 'a combinar' && !j.urgent ? ' às ' + j.time : ''}. O valor fica ${brl(price)}, com tudo incluso.${p.count ? ` Tenho nota ${nf(p.rating)} e ${p.jobs} serviços concluídos aqui.` : ''}`}
+      message={price => `Oi, ${first(cl.name)}! Vi seu pedido e posso atender ${when}${j.time && j.time !== 'a combinar' && !j.urgent ? ' às ' + j.time : ''}. ${priceMsg(price)}${p.count ? ` Tenho nota ${nf(p.rating)} e ${p.jobs} serviços concluídos aqui.` : ''}`}
       header={
         <div className="card" style={{display: 'flex', flexDirection: 'column', gap: 6}}>
           <span className="small muted">{cl.name} · {cTxt(cl)}</span>

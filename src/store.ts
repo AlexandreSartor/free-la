@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { CATS, ME, SEED_INCOMING, SEED_JOBS, SEED_ORDERS, SEED_PROS, SEED_USERS, TODAY } from './data/seed';
-import { brl, brlc, clientTotal, first, fmtDay } from './lib/format';
+import { brlc, clientTotal, first, fmtDay, priceMsg } from './lib/format';
 import type { CatKey, Job, OppFilters, Order, Rating, SearchFilters, User } from './lib/types';
 import { buildWorld, match, matchJob, PF0, POS, provs, SF0 } from './lib/world';
 
@@ -93,7 +93,7 @@ export const useStore = create<Store>()(persist(immer((set, get) => {
       set(s => {
         const o = s.orders.find(x => x.id === id)!;
         o.price = p.price; o.status = 'accepted';
-        o.msgs.push({from: 'pro', text: `Oi, ${first(wd.byId[o.clientId].name)}! Posso atender ${fmtDay(o.day!)} às ${o.time}. O valor fica ${brl(p.price)}, com tudo incluso.`});
+        o.msgs.push({from: 'pro', text: `Oi, ${first(wd.byId[o.clientId].name)}! Posso atender ${fmtDay(o.day!)} às ${o.time}. ${priceMsg(p.price)}`});
       });
     },
     acceptQuote: (id, price, text) => set(s => {
@@ -141,7 +141,7 @@ export const useStore = create<Store>()(persist(immer((set, get) => {
       // Simulação: os profissionais mais compatíveis da área respondem na hora
       provs(wd).filter(p => p.cat === inp.cat && p.id !== wd.meId).map(p => ({p, m: matchJob(wd, p, j)})).sort((a, b) => b.m.pct - a.m.pct).slice(0, 3).forEach(({p}) => {
         const price = j.budget ? Math.min(Math.max(p.price, j.budget[0]), j.budget[1]) : p.price;
-        j.proposals.push({proId: p.id, price, msg: `Oi, ${first(me.name)}! Posso atender ${fmtDay(j.day)} às ${j.time}. Faço por ${brl(price)}, com tudo incluso.`});
+        j.proposals.push({proId: p.id, price, msg: `Oi, ${first(me.name)}! Posso atender ${fmtDay(j.day)} às ${j.time}. ${priceMsg(price)}`});
       });
       set(s => { s.jobs.unshift(j); });
       return j.proposals.length;
@@ -161,7 +161,7 @@ export const useStore = create<Store>()(persist(immer((set, get) => {
     simClientAccept: (jobId) => {
       const wd = w(), j = wd.jobs.find(x => x.id === jobId)!, p = wd.me, pp = j.proposals.find(x => x.proId === p.id)!, id = nextId('o');
       const o: Order = {id, proId: p.id, clientId: j.clientId, cat: j.cat, title: j.title, desc: j.desc, date: null, day: j.urgent ? TODAY : j.day, time: j.time === 'agora' ? '9h' : j.time,
-        price: pp.price, status: 'paid', msgs: [{from: 'pro', text: pp.msg}, {from: 'sys', text: first(wd.byId[j.clientId].name) + ' aceitou sua proposta e pagou ' + brl(pp.price) + ' com proteção.'}],
+        price: pp.price, status: 'paid', msgs: [{from: 'pro', text: pp.msg}, {from: 'sys', text: first(wd.byId[j.clientId].name) + ' aceitou sua proposta e pagou ' + brlc(clientTotal(pp.price)) + ' com proteção.'}],
         ratePro: null, rateClient: null, match: matchJob(wd, p, j)};
       set(s => { s.jobs.find(x => x.id === jobId)!.status = 'hired'; s.orders.push(o); });
       return id;

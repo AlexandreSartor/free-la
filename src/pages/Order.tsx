@@ -139,7 +139,7 @@ export default function OrderPage() {
           <span className="small muted">{c ? 'Você contratou' : 'Você atende'} <Link className="lnk" to={'/perfil/' + other.id}>{other.name}</Link> · {o.date ? 'concluído em ' + o.date : <>{o.day ? fmtDay(o.day) : ''}, às {o.time}</>}</span>
           {o.desc && <span className="small" style={{color: 'var(--ink2)'}}>“{o.desc}”</span>}
         </span>
-        <b style={{fontSize: 22}}>{o.price ? brl(o.price) : <span className="small muted">{o.seed ? 'valor visível só para os dois' : 'aguardando orçamento'}</span>}</b>
+        <b style={{fontSize: 22, textAlign: 'right'}}>{o.price ? <>{brlc(c ? clientTotal(o.price) : o.price)}<br /><span className="small muted" style={{fontWeight: 500}}>{c ? 'total com taxa de proteção' : 'você recebe, sem taxa'}</span></> : <span className="small muted">{o.seed ? 'valor visível só para os dois' : 'aguardando orçamento'}</span>}</b>
       </div>
       <div className="steps5">{steps.map((s, i) => <div key={s} className={i < idx ? 'ok' : ''}><i />{s}</div>)}</div>
     </section>

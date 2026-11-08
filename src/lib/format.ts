@@ -7,6 +7,8 @@ export const brl = (n: number) => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
 export const brlc = (n: number) => 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 export const clientFee = (price: number) => Math.round((price * FEE_PCT + FEE_FIXED) * 100) / 100;
 export const clientTotal = (price: number) => price + clientFee(price);
+/** Frase do valor final para o cliente, já com a taxa de proteção. */
+export const priceMsg = (price: number) => `O valor final fica ${brlc(clientTotal(price))} (${brlc(price)} do serviço + ${brlc(clientFee(price))} da taxa de proteção).`;
 export const WD = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 export const WDS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 export const wd = (d: number) => (d - 1) % 7; // 1/nov/2026 = domingo
