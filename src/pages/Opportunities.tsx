@@ -13,7 +13,6 @@ export default function Opportunities() {
   const f = useStore(s => s.pf), setPf = useStore(s => s.setPf), resetPf = useStore(s => s.resetPf);
   const [open, setOpen] = useState(false);
   const list = oppList(w, p, f), active = pfActive(f);
-  const catNow = f.cat === 'mine' ? p.cat : f.cat;
 
   return <>
     <section style={{display: 'flex', flexDirection: 'column', gap: 10}}>
@@ -25,7 +24,7 @@ export default function Opportunities() {
         <button className="btn o fbtn" aria-expanded={open} onClick={() => setOpen(!open)}><Icon n="filter" s={18} />Filtros{active ? ` (${active})` : ''}</button>
       </div>
       <RegionBar place="Pedidos em" city={f.city}
-        items={w.jobs.filter(j => j.status === 'open' && j.dist !== 0 && j.hood && (catNow === 'all' || j.cat === catNow)).map(j => j.hood)}
+        items={oppList(w, p, {...f, city: 'all'}).map(x => x.j.hood)}
         onCity={c => setPf({city: c})} />
     </section>
     <div className="row">

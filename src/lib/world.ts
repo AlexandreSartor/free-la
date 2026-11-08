@@ -1,7 +1,8 @@
 /* Regras do negócio. Tudo é calculado a partir do estado (pessoas, pedidos e oportunidades). */
 import { CATS, TODAY } from '../data/seed';
 import type { CatKey, Job, Match, OppFilters, Order, Person, Reason, SearchFilters, User } from './types';
-import { cityOf, fmtDay, hoodOf, km, nf, norm, brl } from './format';
+import { cityOf, fmtDay, hoodOf, km, nf, brl } from './format';
+import { SYNONYMS, textSearch } from './search';
 
 /** Nota mínima, dos dois lados, para uma experiência virar conexão de confiança. */
 export const POS = 4;
@@ -173,13 +174,12 @@ export const PF0 = (): OppFilters => ({text: '', cat: 'mine', city: 'all', km: 0
 
 export function searchPros(w: World, f: SearchFilters) {
   const ctx: MatchCtx = {cat: f.cat === 'all' ? null : f.cat, day: typeof f.avail === 'number' ? f.avail : null, urgent: f.avail === 'now'};
-  const toks = norm(f.text).split(/\s+/).filter(Boolean);
-  const list = provs(w).filter(p => p.id !== w.meId).map(p => ({p, m: match(w, p, ctx), s: score(p)})).filter(({p}) => {
-    const hay = norm([p.name, p.role, p.skills.join(' '), CATS[p.cat].label, p.hood].join(' '));
-    if (toks.length && !toks.every(t => hay.includes(t))) return false;
+  // Cidade e bairro ficam de fora daqui: o texto é buscado na região toda e só depois filtrado pelo lugar,
+  // assim a contagem de cada cidade na barra de região sempre bate com a lista.
+  const inRegion = (p: Person) => (f.city === 'all' || (p.dist !== 0 && cityOf(p.hood) === f.city))
+    && !(f.city === 'Criciúma' && f.hood !== 'all' && p.dist !== 0 && hoodOf(p.hood) !== f.hood);
+  const base = provs(w).filter(p => p.id !== w.meId).filter(p => {
     if (f.cat !== 'all' && p.cat !== f.cat) return false;
-    if (f.city !== 'all' && (p.dist === 0 || cityOf(p.hood) !== f.city)) return false;
-    if (f.city === 'Criciúma' && f.hood !== 'all' && p.dist !== 0 && hoodOf(p.hood) !== f.hood) return false;
     if (p.dist === 0 ? !f.online : (f.km && p.dist > f.km)) return false;
     if (f.price && p.price > f.price) return false;
     if (f.rating && (!p.count || p.rating < f.rating)) return false;
@@ -190,9 +190,11 @@ export function searchPros(w: World, f: SearchFilters) {
     if (f.women && p.g !== 'f') return false;
     return true;
   });
+  const found = textSearch(base, f.text, p => ({main: [p.name, p.role, p.skills.join(' '), CATS[p.cat].label, p.hood], extra: SYNONYMS[p.cat]}));
+  const list = found.items.filter(({x: p}) => inRegion(p)).map(({x: p, score: t}) => ({p, t, m: match(w, p, ctx), s: score(p)}));
   type It = typeof list[number];
   const sorters: Record<string, (a: It, b: It) => number> = {
-    best: (a, b) => (b.m.pct - a.m.pct) || (b.s.total - a.s.total),
+    best: (a, b) => (b.t - a.t) || (b.m.pct - a.m.pct) || (b.s.total - a.s.total),
     price: (a, b) => a.p.price - b.p.price,
     dist: (a, b) => (a.p.dist || 99) - (b.p.dist || 99),
     rating: (a, b) => b.p.rating - a.p.rating || b.p.count - a.p.count,
@@ -210,18 +212,14 @@ export function searchPros(w: World, f: SearchFilters) {
   if (f.verified) active.push(['verified', 'Só verificados']);
   if (f.certs) active.push(['certs', 'Com certificado']);
   if (f.women) active.push(['women', 'Profissional mulher']);
-  return {list, active, ctx};
+  return {list, active, ctx, approx: found.approx};
 }
 
 /* ===== Oportunidades para quem trabalha ===== */
 export function oppList(w: World, p: Person, f: OppFilters) {
-  const toks = norm(f.text).split(/\s+/).filter(Boolean);
   const cat = f.cat === 'mine' ? p.cat : f.cat;
-  const list = w.jobs.filter(j => j.status === 'open' && j.clientId !== w.meId).map(j => ({j, m: matchJob(w, p, j)})).filter(({j}) => {
-    const hay = norm([j.title, j.desc, w.byId[j.clientId].name, j.hood, CATS[j.cat].label].join(' '));
-    if (toks.length && !toks.every(t => hay.includes(t))) return false;
+  const base = w.jobs.filter(j => j.status === 'open' && j.clientId !== w.meId).filter(j => {
     if (cat !== 'all' && j.cat !== cat) return false;
-    if (f.city !== 'all' && j.dist !== 0 && cityOf(j.hood) !== f.city) return false;
     const jd = jobDist(p, j);
     if (f.km && jd !== 0 && jd > f.km) return false;
     if (f.min && (!j.budget || j.budget[1] < f.min)) return false;
@@ -232,6 +230,9 @@ export function oppList(w: World, p: Person, f: OppFilters) {
     if (f.good && (cRate(w.byId[j.clientId]) || 0) < 4.8) return false;
     return true;
   });
+  const found = textSearch(base, f.text, j => ({main: [j.title, j.desc, w.byId[j.clientId].name, j.hood, CATS[j.cat].label], extra: SYNONYMS[j.cat]}));
+  // Cidade filtrada depois do texto, como na busca de profissionais, para a barra de região bater com a lista.
+  const list = found.items.filter(({x: j}) => f.city === 'all' || j.dist === 0 || cityOf(j.hood) === f.city).map(({x: j}) => ({j, m: matchJob(w, p, j)}));
   type It = typeof list[number];
   const s: Record<string, (a: It, b: It) => number> = {
     match: (a, b) => b.m.pct - a.m.pct,

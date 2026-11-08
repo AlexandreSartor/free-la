@@ -12,7 +12,9 @@ export default function Results() {
   const w = useWorld(), nav = useNavigate();
   const f = useStore(s => s.sf), setSf = useStore(s => s.setSf), resetSf = useStore(s => s.resetSf);
   const [open, setOpen] = useState(false);
-  const {list, active} = searchPros(w, f);
+  const {list, active, approx} = searchPros(w, f);
+  // Contagem por cidade com a mesma busca e filtros, só sem o filtro de região (online conta no total).
+  const regionHoods = searchPros(w, {...f, city: 'all', hood: 'all'}).list.map(x => x.p.hood);
   const nF = active.length;
   const others = provs(w).filter(p => p.id !== w.meId);
   const hoods = [...new Set(others.filter(p => cityOf(p.hood) === 'Criciúma').map(p => hoodOf(p.hood)))].sort((a, b) => a.localeCompare(b, 'pt'));
@@ -29,7 +31,7 @@ export default function Results() {
         {f.text && <button className="gx" onClick={() => setSf({text: ''})} aria-label="Limpar busca">✕</button>}
       </div>
       <RegionBar place="Profissionais em" city={f.city} hood={f.hood}
-        items={others.filter(p => p.dist !== 0 && (f.cat === 'all' || p.cat === f.cat)).map(p => p.hood)}
+        items={regionHoods}
         onCity={c => setSf({city: c, hood: 'all'})} onHood={h => setSf({hood: h})} />
       <div className="fbar">
         <button className="tog" aria-expanded={open} aria-controls="fpane" aria-pressed={open || nF > 0} onClick={() => setOpen(!open)}>
@@ -71,6 +73,7 @@ export default function Results() {
         {f.cat !== 'all' && <button className="chip o" style={{border: 0}} onClick={() => setSf({cat: 'all'})} aria-label={'Remover categoria ' + CATS[f.cat].label}>{CATS[f.cat].label} ✕</button>}
         {active.map(a => <button key={a[0]} className="chip o" style={{border: 0}} onClick={() => del(a[0])} aria-label={'Remover filtro ' + a[1]}>{a[1]} ✕</button>)}
       </div>
+      {approx && <p className="small muted">Nenhum resultado exato para “{f.text.trim()}”. Mostrando profissionais com termos parecidos.</p>}
       {list.length
         ? <div className="grid" style={{'--min': '330px'} as CSSProperties}>{list.map(x => <ProCard key={x.p.id} p={x.p} />)}</div>
         : <div className="empty">Nenhum profissional encontrado.<br /><br /><button className="btn o" onClick={() => resetSf()}>Limpar busca e filtros</button></div>}
