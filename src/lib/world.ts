@@ -1,7 +1,7 @@
 /* Regras do negócio. Tudo é calculado a partir do estado (pessoas, pedidos e oportunidades). */
 import { CATS, TODAY } from '../data/seed';
 import type { CatKey, Job, Match, OppFilters, Order, Person, Reason, SearchFilters, User } from './types';
-import { cityOf, fmtDay, hoodOf, km, nf, brl } from './format';
+import { cityOf, fmtDay, km, nf, brl } from './format';
 import { SYNONYMS, textSearch } from './search';
 
 /** Nota mínima, dos dois lados, para uma experiência virar conexão de confiança. */
@@ -169,15 +169,14 @@ export function edgeInfo(w: World, a: string, b: string) {
 }
 
 /* ===== Busca de profissionais ===== */
-export const SF0 = (): SearchFilters => ({text: '', cat: 'all', city: 'all', hood: 'all', km: 0, online: true, price: 0, rating: 0, avail: 'any', verified: false, certs: false, women: false, sort: 'best'});
+export const SF0 = (): SearchFilters => ({text: '', cat: 'all', city: 'all', km: 0, online: true, price: 0, rating: 0, avail: 'any', verified: false, certs: false, women: false, sort: 'best'});
 export const PF0 = (): OppFilters => ({text: '', cat: 'mine', city: 'all', km: 0, min: 0, when: 'all', urgent: false, good: false, sort: 'match'});
 
 export function searchPros(w: World, f: SearchFilters) {
   const ctx: MatchCtx = {cat: f.cat === 'all' ? null : f.cat, day: typeof f.avail === 'number' ? f.avail : null, urgent: f.avail === 'now'};
-  // Cidade e bairro ficam de fora daqui: o texto é buscado na região toda e só depois filtrado pelo lugar,
+  // A cidade fica de fora daqui: o texto é buscado na região toda e só depois filtrado pelo lugar,
   // assim a contagem de cada cidade na barra de região sempre bate com a lista.
-  const inRegion = (p: Person) => (f.city === 'all' || (p.dist !== 0 && cityOf(p.hood) === f.city))
-    && !(f.city === 'Criciúma' && f.hood !== 'all' && p.dist !== 0 && hoodOf(p.hood) !== f.hood);
+  const inRegion = (p: Person) => f.city === 'all' || (p.dist !== 0 && cityOf(p.hood) === f.city);
   const base = provs(w).filter(p => p.id !== w.meId).filter(p => {
     if (f.cat !== 'all' && p.cat !== f.cat) return false;
     if (p.dist === 0 ? !f.online : (f.km && p.dist > f.km)) return false;
@@ -203,7 +202,6 @@ export function searchPros(w: World, f: SearchFilters) {
   list.sort(sorters[f.sort] || sorters.best);
   const active: [keyof SearchFilters, string][] = [];
   if (f.city !== 'all') active.push(['city', f.city]);
-  if (f.city === 'Criciúma' && f.hood !== 'all') active.push(['hood', 'Bairro ' + f.hood]);
   if (f.km) active.push(['km', 'Até ' + f.km + ' km']);
   if (!f.online) active.push(['online', 'Sem atendimento online']);
   if (f.price) active.push(['price', 'Até ' + brl(f.price)]);

@@ -1,23 +1,23 @@
 import { useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ProCard, RegionBar, SelBox } from '../components/common';
+import { ProCard, SelBox } from '../components/common';
 import { Icon } from '../components/Icon';
 import { CATS, CITIES, TODAY } from '../data/seed';
-import { cityOf, fmtDay, hoodOf, plural } from '../lib/format';
+import { cityOf, fmtDay, plural } from '../lib/format';
 import type { SearchFilters } from '../lib/types';
-import { provs, searchPros, SF0 } from '../lib/world';
+import { searchPros, SF0 } from '../lib/world';
 import { useStore, useWorld } from '../store';
 
 export default function Results() {
   const w = useWorld(), nav = useNavigate();
   const f = useStore(s => s.sf), setSf = useStore(s => s.setSf), resetSf = useStore(s => s.resetSf);
   const [open, setOpen] = useState(false);
-  const {list, active, approx} = searchPros(w, f);
-  // Contagem por cidade com a mesma busca e filtros, só sem o filtro de região (online conta no total).
-  const regionHoods = searchPros(w, {...f, city: 'all', hood: 'all'}).list.map(x => x.p.hood);
-  const nF = active.length;
-  const others = provs(w).filter(p => p.id !== w.meId);
-  const hoods = [...new Set(others.filter(p => cityOf(p.hood) === 'Criciúma').map(p => hoodOf(p.hood)))].sort((a, b) => a.localeCompare(b, 'pt'));
+  const {list, active: all, approx} = searchPros(w, f);
+  // A cidade já aparece na caixa de seleção, então não vira chip nem conta como filtro extra.
+  const active = all.filter(a => a[0] !== 'city'), nF = active.length;
+  // Contagem por cidade com a mesma busca e filtros, só sem a cidade (online conta em "Todas as cidades").
+  const inAll = searchPros(w, {...f, city: 'all'}).list;
+  const cityOpts: [string, string][] = [['all', `Todas as cidades (${inAll.length})`], ...CITIES.map(c => [c, `${c} (${inAll.filter(x => cityOf(x.p.hood) === c).length})`] as [string, string])];
   const del = (k: keyof SearchFilters) => setSf({[k]: SF0()[k]} as Partial<SearchFilters>);
   const dayOpts: [number, string][] = Array.from({length: 7}, (_, i) => [TODAY + i, 'Livre ' + fmtDay(TODAY + i)]);
 
@@ -30,10 +30,14 @@ export default function Results() {
         <input type="text" id="sText" value={f.text} onChange={e => setSf({text: e.target.value})} placeholder="Busque por serviço ou nome do profissional" autoComplete="off" />
         {f.text && <button className="gx" onClick={() => setSf({text: ''})} aria-label="Limpar busca">✕</button>}
       </div>
-      <RegionBar place="Profissionais em" city={f.city} hood={f.hood}
-        items={regionHoods}
-        onCity={c => setSf({city: c, hood: 'all'})} onHood={h => setSf({hood: h})} />
       <div className="fbar">
+        <label className="city-sel">
+          <Icon n="pin" s={16} c="#FF8A3D" />
+          <span className="sr">Cidade</span>
+          <select value={f.city} onChange={e => setSf({city: e.target.value})}>
+            {cityOpts.map(o => <option key={o[0]} value={o[0]}>{o[1]}</option>)}
+          </select>
+        </label>
         <button className="tog" aria-expanded={open} aria-controls="fpane" aria-pressed={open || nF > 0} onClick={() => setOpen(!open)}>
           <Icon n="filter" s={16} />Filtros{nF ? ` (${nF})` : ''}
         </button>
@@ -47,8 +51,6 @@ export default function Results() {
       {open && (
         <div className="fpane" id="fpane">
           <div className="grid" style={{'--min': '170px'} as CSSProperties}>
-            <SelBox id="sf-city" label="Cidade" value={f.city} onChange={v => setSf({city: v, hood: 'all'})} opts={[['all', 'Criciúma e região'], ...CITIES.map(c => [c, c] as [string, string])]} />
-            {f.city === 'Criciúma' && <SelBox id="sf-hood" label="Bairro" value={f.hood} onChange={v => setSf({hood: v})} opts={[['all', 'Todos os bairros'], ...hoods.map(h => [h, h] as [string, string])]} />}
             <SelBox id="sf-km" label="Distância" value={f.km} onChange={v => setSf({km: v})} opts={[[0, 'Qualquer distância'], [2, 'Até 2 km'], [5, 'Até 5 km'], [10, 'Até 10 km'], [15, 'Até 15 km'], [25, 'Até 25 km']]} />
             <SelBox id="sf-price" label="Preço inicial" value={f.price} onChange={v => setSf({price: v})} opts={[[0, 'Qualquer preço'], [100, 'Até R$ 100'], [150, 'Até R$ 150'], [200, 'Até R$ 200'], [300, 'Até R$ 300'], [600, 'Até R$ 600'], [1500, 'Até R$ 1.500']]} />
             <SelBox id="sf-rating" label="Avaliação mínima" value={f.rating} onChange={v => setSf({rating: v})} opts={[[0, 'Qualquer nota'], [4, '4,0 ou mais'], [4.5, '4,5 ou mais'], [4.8, '4,8 ou mais']]} />
@@ -60,7 +62,7 @@ export default function Results() {
             <button className="tog" aria-pressed={f.certs} onClick={() => setSf({certs: !f.certs})}>Com certificado</button>
             <button className="tog" aria-pressed={f.women} onClick={() => setSf({women: !f.women})}>Profissional mulher</button>
             <span style={{marginLeft: 'auto', display: 'flex', gap: 8}}>
-              {nF > 0 && <button className="gx" onClick={() => resetSf({text: f.text, cat: f.cat, sort: f.sort})}>Limpar filtros</button>}
+              {nF > 0 && <button className="gx" onClick={() => resetSf({text: f.text, cat: f.cat, sort: f.sort, city: f.city})}>Limpar filtros</button>}
               <button className="btn n sm" onClick={() => setOpen(false)}>Ver resultados</button>
             </span>
           </div>

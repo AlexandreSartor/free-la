@@ -284,3 +284,8 @@ svg.hl .ed.on{stroke-width:3.4}
 .logo-txt b{font-family:Poppins,Inter,sans-serif;font-weight:700;font-size:23px;letter-spacing:-.01em}
 .logo-txt small{font-family:Poppins,Inter,sans-serif;font-weight:600;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--navy4);margin-top:3px}
 .hdr.pro .logo-txt small{color:#AFC0EB}
+/* Caixa de cidade na busca */
+.city-sel{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 4px 0 12px;border-radius:999px;border:1.5px solid var(--line2);background:#fff;cursor:pointer}
+.city-sel:focus-within{border-color:var(--navy);box-shadow:0 0 0 3px rgba(255,138,61,.25)}
+.city-sel select{border:0;background:transparent;font-size:13px;font-weight:600;color:var(--navy);min-height:34px;padding:0 6px;cursor:pointer;max-width:220px}
+.city-sel select:focus{outline:none}

@@ -95,7 +95,6 @@ export interface SearchFilters {
   text: string;
   cat: CatKey | 'all';
   city: string;
-  hood: string;
   km: number;
   online: boolean;
   price: number;
